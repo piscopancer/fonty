@@ -1,7 +1,11 @@
+<p align="center">
+  <img src='./assets/logo.jpg' style='width:200px;border-radius:10%;'>
+</p>
+
 ## Configuration
 
-Change `fonty.fontFamily` in the extension configuration and run commands
+Change `fonty.fontFamily` in the extension configuration and run commands.
 
 ## Usage
 
-Run `fonty.setFont` to change font
+Configure the font in the extension settings first and run `fonty.applyFont` second. Alternatively, run `fonty.setFont` to specify and apply font right away.

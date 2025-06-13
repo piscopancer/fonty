@@ -1,16 +1,34 @@
-import { JSDOM } from 'jsdom'
-import fs from 'node:fs'
-import path from 'node:path'
+import fs from 'fs'
+import { HTMLElement, parse } from 'node-html-parser'
+import path from 'path'
 import * as vscode from 'vscode'
 
 export function activate(context: vscode.ExtensionContext) {
-  const setFontCommand = vscode.commands.registerCommand('fonty.setFont', () => {
-    setFont()
+  const applyFontCommand = vscode.commands.registerCommand('fonty.applyFont', () => {
+    applyFont()
   })
-  const unsetFontCommand = vscode.commands.registerCommand('fonty.unsetFont', () => {
-    unsetFont()
+  const applyDefaultFontCommand = vscode.commands.registerCommand('fonty.applyDefaultFont', () => {
+    applyFont('default')
   })
-  context.subscriptions.push(setFontCommand, unsetFontCommand)
+  const setFontCommand = vscode.commands.registerCommand('fonty.setFont', async () => {
+    const font = await vscode.window.showInputBox({
+      placeHolder: 'my fancy font',
+      title: 'Specify font you want to apply',
+      prompt: 'Leave empty to unset.',
+    })
+    vscode.workspace.getConfiguration('fonty').update('fontFamily', '', vscode.ConfigurationTarget.Global)
+    applyFont(font)
+  })
+  const unsetFontCommand = vscode.commands.registerCommand('fonty.unsetFont', async () => {
+    await unsetFont()
+  })
+  context.subscriptions.push(
+    //
+    applyFontCommand,
+    setFontCommand,
+    unsetFontCommand,
+    applyDefaultFontCommand
+  )
 }
 
 const workbenchPath = path.join(vscode.env.appRoot, 'out/vs/code/electron-sandbox/workbench/workbench.html')
@@ -21,50 +39,50 @@ function getWorkbenchHtml() {
 
 function buildStyleContent(fontName: string) {
   return `
-  :is(.mac, .windows, .linux, :host-context(.OS), .monaco-inputbox input):not(.monaco-mouse-cursor-text) {
-    font-family: ${fontName} !important;
-  }
+:is(.mac, .windows, .linux, :host-context(.OS), .monaco-inputbox input):not(.monaco-mouse-cursor-text),
+.monaco-editor .editorPlaceholder,
+.view-lines.monaco-mouse-cursor-text,
+.shadow-root-host
+{
+  font-family: ${fontName} !important;
+}
 `
 }
 
-const fontUnsetMessage = 'Font unset. Restart app to apply.'
-
-function setFont() {
+async function applyFont(_font?: string) {
+  await vscode.workspace.getConfiguration('fonty').update('fontFamily', _font, vscode.ConfigurationTarget.Global)
   let font = vscode.workspace.getConfiguration('fonty').get('fontFamily') as string | undefined
   if (!font?.trim()) {
-    vscode.window.showInformationMessage(fontUnsetMessage)
+    vscode.commands.executeCommand('workbench.action.reloadWindow')
     return
   }
   if (font === 'default') {
     font = vscode.workspace.getConfiguration('editor').get('fontFamily') as string
   }
   const html = getWorkbenchHtml()
-  const dom = new JSDOM(html)
-  const doc = dom.window.document
-  const existingStyleEl = doc.querySelector('style#fonty')
+  const root = parse(html)
+  const existingStyleEl = root.querySelector('style#fonty')
   if (existingStyleEl) {
-    existingStyleEl.innerHTML = buildStyleContent(font)
+    existingStyleEl.textContent = buildStyleContent(font)
   } else {
-    let styleEl = doc.createElement('style')
-    styleEl.setAttribute('id', 'fonty')
+    let styleEl = new HTMLElement('style', { id: 'fonty' })
     styleEl.innerHTML = buildStyleContent(font)
-    doc.head.appendChild(styleEl)
+    root.querySelector('head')!.append(styleEl)
   }
-  fs.writeFileSync(workbenchPath, dom.serialize())
-  vscode.window.showInformationMessage(`Font changed to ${font}. Restart app to apply.`)
+  fs.writeFileSync(workbenchPath, root.toString())
+  vscode.commands.executeCommand('workbench.action.reloadWindow')
 }
 
-function unsetFont() {
-  vscode.workspace.getConfiguration('fonty').update('fontFamily', '', vscode.ConfigurationTarget.Global)
+async function unsetFont() {
+  await vscode.workspace.getConfiguration('fonty').update('fontFamily', '', vscode.ConfigurationTarget.Global)
   const html = getWorkbenchHtml()
-  const dom = new JSDOM(html)
-  const doc = dom.window.document
-  const styleEl = doc.querySelector('style#fonty')
+  const root = parse(html)
+  const styleEl = root.querySelector('style#fonty')
   if (styleEl) {
-    doc.head.removeChild(styleEl)
+    root.querySelector('head')!.removeChild(styleEl)
   }
-  fs.writeFileSync(workbenchPath, dom.serialize())
-  vscode.window.showInformationMessage(fontUnsetMessage)
+  fs.writeFileSync(workbenchPath, root.toString())
+  vscode.commands.executeCommand('workbench.action.reloadWindow')
 }
 
 export function deactivate() {}
