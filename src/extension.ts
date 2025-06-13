@@ -16,8 +16,9 @@ export function activate(context: vscode.ExtensionContext) {
       title: 'Specify font you want to apply',
       prompt: 'Leave empty to unset.',
     })
-    vscode.workspace.getConfiguration('fonty').update('fontFamily', '', vscode.ConfigurationTarget.Global)
-    applyFont(font)
+    if (font?.trim()) {
+      await applyFont(font)
+    }
   })
   const unsetFontCommand = vscode.commands.registerCommand('fonty.unsetFont', async () => {
     await unsetFont()
@@ -45,8 +46,7 @@ function buildStyleContent(fontName: string) {
 .shadow-root-host
 {
   font-family: ${fontName} !important;
-}
-`
+}`
 }
 
 async function applyFont(_font?: string) {
