@@ -1,6 +1,7 @@
 <p align="center">
   <img src='./assets/logo.jpg' style='width:200px;border-radius:10%;'>
 </p>
+<p align="center">Change VSCode's app font</p>
 
 ## Configuration
 
