@@ -1,0 +1,12 @@
+{
+  "exclude": ["node_modules", "tsup.config.ts"],
+  "compilerOptions": {
+    "module": "Node16",
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "rootDir": "src",
+    "skipDefaultLibCheck": true,
+    "skipLibCheck": true,
+    "strict": true
+  }
+}
