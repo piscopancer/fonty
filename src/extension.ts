@@ -32,7 +32,7 @@ export function activate(context: vscode.ExtensionContext) {
   )
 }
 
-const workbenchPath = path.join(vscode.env.appRoot, 'out/vs/code/electron-sandbox/workbench/workbench.html')
+const workbenchPath = path.join(vscode.env.appRoot, 'out/vs/code/electron-browser/workbench/workbench.html')
 
 function getWorkbenchHtml() {
   return fs.readFileSync(workbenchPath).toString()
